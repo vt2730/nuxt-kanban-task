@@ -13,12 +13,15 @@ export const useProject = () => {
   const loadProjects = () => {
     try {
       loading.value = true;
+     error.value = null;
       projects.value = getItem(STORAGE_KEYS.PROJECTS, []);
       const currentProjectId = getItem(STORAGE_KEYS.CURRENT_PROJECT, null);
       
       if (currentProjectId) {
         currentProject.value = projects.value.find(p => p.id === currentProjectId) || null;
       }
+   } catch (err) {
+     error.value = err instanceof Error ? err.message : 'Failed to load projects';
     } finally {
       loading.value = false;
     }
@@ -46,7 +49,7 @@ export const useProject = () => {
     return newProject;
   };
 
-  const updateProject = (projectId: string, updates: Partial<Project>) => {
+  const updateProject = (projectId: string, updates: Partial<Project>): boolean => {
     const index = projects.value.findIndex(p => p.id === projectId);
     if (index !== -1) {
       projects.value[index] = {
@@ -55,7 +58,9 @@ export const useProject = () => {
         updatedAt: new Date().toISOString()
       };
       saveProjects();
+     return true;
     }
+   return false;
   };
 
   const deleteProject = (projectId: string) => {
@@ -67,15 +72,17 @@ export const useProject = () => {
     saveProjects();
   };
 
-  const setCurrentProject = (projectId: string) => {
+  const setCurrentProject = (projectId: string): boolean => {
     const project = projects.value.find(p => p.id === projectId);
     if (project) {
       currentProject.value = project;
       setItem(STORAGE_KEYS.CURRENT_PROJECT, projectId);
+     return true;
     }
+   return false;
   };
 
-  const addModule = (projectId: string, category: CategoryType, moduleData: Omit<Module, 'id' | 'createdAt'>) => {
+  const addModule = (projectId: string, category: CategoryType, moduleData: Omit<Module, 'id' | 'createdAt'>): Module | null => {
     const project = projects.value.find(p => p.id === projectId);
     if (project) {
       const newModule: Module = {
@@ -88,10 +95,12 @@ export const useProject = () => {
       project.categories[category].modules.push(newModule);
       project.updatedAt = new Date().toISOString();
       saveProjects();
+     return newModule;
     }
+   return null;
   };
 
-  const updateModule = (projectId: string, category: CategoryType, moduleId: string, updates: Partial<Module>) => {
+  const updateModule = (projectId: string, category: CategoryType, moduleId: string, updates: Partial<Module>): boolean => {
     const project = projects.value.find(p => p.id === projectId);
     if (project) {
       const moduleIndex = project.categories[category].modules.findIndex(m => m.id === moduleId);
@@ -102,17 +111,21 @@ export const useProject = () => {
         };
         project.updatedAt = new Date().toISOString();
         saveProjects();
+       return true;
       }
     }
+   return false;
   };
 
-  const deleteModule = (projectId: string, category: CategoryType, moduleId: string) => {
+  const deleteModule = (projectId: string, category: CategoryType, moduleId: string): boolean => {
     const project = projects.value.find(p => p.id === projectId);
     if (project) {
       project.categories[category].modules = project.categories[category].modules.filter(m => m.id !== moduleId);
       project.updatedAt = new Date().toISOString();
       saveProjects();
+     return true;
     }
+   return false;
   };
 
   // Initialize on composable creation
